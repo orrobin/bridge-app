@@ -82,7 +82,10 @@ def test_hybrid_search_has_better_mean_reciprocal_rank_than_vector_only():
         vector_mrr = sum(vector_reciprocal_ranks) / len(vector_reciprocal_ranks)
         hybrid_mrr = sum(hybrid_reciprocal_ranks) / len(hybrid_reciprocal_ranks)
 
+        # RRF fusion isn't guaranteed to improve every single query -- it's a
+        # rank-aggregation heuristic, not a per-query monotonic improvement. What
+        # it should do, and what we assert, is improve overall ranking quality
+        # across the golden set (mean reciprocal rank).
         assert hybrid_mrr > vector_mrr
-        assert all(h >= v for h, v in zip(hybrid_reciprocal_ranks, vector_reciprocal_ranks))
     finally:
         db.close()

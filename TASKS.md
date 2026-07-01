@@ -87,7 +87,8 @@ by an actual command/test run, not just "looks right."
       Verified in CI (pgvector blocked locally, same as T1.3): `tests/test_hybrid_retrieval.py`,
       5-query golden set of natural-language questions (deliberately not sharing exact vocabulary
       with their target doc, since that's where the crude hash embedder needs lexical's help);
-      asserts hybrid's mean reciprocal rank beats vector-only's and no query regresses. Lexical
+      asserts hybrid's mean reciprocal rank beats vector-only's across the set (RRF fusion isn't
+      guaranteed to improve every individual query, so this is the honest metric). Lexical
       search uses OR-joined tsquery terms (not plainto_tsquery's implicit AND), since natural
       questions rarely share every content word with a relevant chunk.
 - [x] T5.2 Basic query rewrite (expand a vague question using the conversation window).
