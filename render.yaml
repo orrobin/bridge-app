@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: bridge-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -e .
+    startCommand: alembic upgrade head && python -m scripts.ingest_corpus && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: APP_NAME
+        value: bridge-backend
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGINS_RAW
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SAFETY_MODEL
+        value: claude-haiku-4-5-20251001
+      - key: GENERATION_MODEL
+        value: claude-sonnet-5
+      - key: EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: USE_LLM_SAFETY_CLASSIFIER
+        value: "false"
+      - key: USE_LLM_AGENTS
+        value: "false"

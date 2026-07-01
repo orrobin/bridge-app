@@ -11,7 +11,13 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://bridge:bridge@localhost:5432/bridge"
     redis_url: str = "redis://localhost:6379/0"
     jwt_secret: str = "dev-secret-change-me"
-    cors_allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # Comma-separated (not JSON) so it's easy to set from a hosting provider's env var UI.
+    cors_allowed_origins_raw: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    @property
+    def cors_allowed_origins(self) -> list[str]:
+        origins = self.cors_allowed_origins_raw.split(",")
+        return [origin.strip() for origin in origins if origin.strip()]
 
     anthropic_api_key: str = ""
     openai_api_key: str = ""
