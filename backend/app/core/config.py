@@ -19,9 +19,10 @@ class Settings(BaseSettings):
     safety_model: str = "claude-haiku-4-5-20251001"
     generation_model: str = "claude-sonnet-5"
     embedding_model: str = "text-embedding-3-small"
-    # Off by default: the rule-based classifier needs no API credits. Flip once
-    # Anthropic API credits are available (TASKS.md T6.1).
+    # Off by default: the heuristic providers need no API credits. Flip once
+    # Anthropic API credits are available (TASKS.md T6.1/T7).
     use_llm_safety_classifier: bool = False
+    use_llm_agents: bool = False
 
 
 @lru_cache

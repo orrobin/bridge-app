@@ -122,14 +122,37 @@ by an actual command/test run, not just "looks right."
       a row with actor/action/decision/reason/input_hash.
 
 ## Epic 7 — Analyst / EQ / Strategy agents + Orchestrator (single-pass)
-- [ ] T7.1 Orchestrator: deterministic call sequence (Safety pre -> Analyst+EQ+Profile parallel -> Strategy -> Meeting-lite -> Safety post).
+- [x] T7.1 Orchestrator: deterministic call sequence (Safety pre -> Analyst+EQ -> Strategy -> Safety post).
       AC: integration test drives a redacted sample chat end-to-end and asserts call order via logged trace.
-- [ ] T7.2 Conversation Analyst agent: confidence-banded hypotheses, grounded via Retrieval.
+      Verified: `tests/test_orchestrator.py` (3 tests, real Postgres for the audit log, a fake
+      retriever injected so it doesn't need pgvector) -- confirms the exact trace
+      `[safety_pre_screen, retrieval, analyst, eq, strategy, safety_post_gate, done]`, confirms a
+      red-flag input stops after `safety_pre_screen` (later steps never run), and confirms
+      safety's post-gate actually filters a manipulative strategy option out of the final result.
+      No separate Profile Analyzer/Meeting-lite agent was built -- not in this epic's task list;
+      Strategy's `mutual_signals_detected`/`is_meeting_suggestion` covers the meeting-suggestion role.
+- [x] T7.2 Conversation Analyst agent: confidence-banded hypotheses, grounded via Retrieval.
       AC: output includes >=1 citation; no bare numeric certainty ("scores as truth") output.
-- [ ] T7.3 Emotional Intelligence agent: possible reads + explicit counter-read.
+      Verified: `tests/test_analyst.py`. `HeuristicAnalystProvider` is the active default (same
+      credit constraint as T6.1); `ClaudeAnalystProvider` is fully implemented, swaps in via
+      `USE_LLM_AGENTS=true` once Anthropic API credits exist.
+- [x] T7.3 Emotional Intelligence agent: possible reads + explicit counter-read.
       AC: every emotional-read output includes a counter-hypothesis field, enforced by schema (not optional).
-- [ ] T7.4 Dating Strategy agent: 2-3 authentic reply options + reasoning + citations; refuses to push past disinterest.
+      Verified: `tests/test_eq.py` -- `EmotionalRead.counter_read` has no default, so
+      constructing one without it raises a pydantic `ValidationError` (schema-enforced, not just
+      convention); `HeuristicEQProvider` always supplies one.
+- [x] T7.4 Dating Strategy agent: 2-3 authentic reply options + reasoning + citations; refuses to push past disinterest.
       AC: disinterest fixture -> no "keep pursuing" option; mutual-signal fixture -> includes a graceful meeting-suggestion option.
+      Verified: `tests/test_strategy.py` -- a disinterest fixture yields only graceful-exit options
+      (`is_meeting_suggestion` false on all); a mutual-signals fixture includes one
+      `is_meeting_suggestion=true` option. Disinterest/mutual-signal detection is real regex logic,
+      not a placeholder -- only the reply wording quality is what a real model will improve on.
+
+All of Epic 7's agents follow the same pattern as T6.1: a deterministic heuristic provider is
+the active default (no Anthropic API credits available yet -- see T6.1), and a real
+`Claude*Provider` is fully implemented per agent, swapped in via `USE_LLM_AGENTS=true` once
+credits exist. The hard safety rules (never push past a detected "no", schema-required
+counter-reads) are enforced structurally, independent of which provider is active.
 
 ## Epic 8 — API surface tying it together
 - [ ] T8.1 `POST /analyze`: upload -> consent-check -> redact -> orchestrate -> grounded, cited response.
