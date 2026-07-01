@@ -1,10 +1,17 @@
+from pathlib import Path
+
 import pytest
 from sqlalchemy import text
 
 from app.db.session import SessionLocal
+from app.rag.embeddings import get_embedding_provider
+from app.rag.ingest import ingest_corpus
 from tests.conftest import unique_email
 
 PASSWORD = "correct-horse-battery-staple"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CONTENT_DIR = REPO_ROOT / "corpus" / "content"
+SOURCES_MD = REPO_ROOT / "corpus" / "sources.md"
 
 
 def _pgvector_available() -> bool:
@@ -71,6 +78,14 @@ def test_analyze_unknown_thread_returns_404(api_client):
     reason="pgvector extension not installed in this environment (see TASKS.md T1.3)",
 )
 def test_analyze_happy_path_returns_grounded_response_with_no_raw_pii(api_client):
+    # /analyze's retrieval step depends on the corpus already being ingested; don't
+    # rely on test execution order picking up another test's side effect for that.
+    db = SessionLocal()
+    try:
+        ingest_corpus(db, CONTENT_DIR, SOURCES_MD, get_embedding_provider())
+    finally:
+        db.close()
+
     headers = _authed_headers(api_client)
 
     raw_text = (
