@@ -1,4 +1,3 @@
-import json
 import re
 from typing import Protocol
 
@@ -133,8 +132,10 @@ class ClaudeStrategyProvider:
     ) -> StrategyOutput:
         context_block = "\n\n".join(f"[{sid}] {content}" for sid, content in retrieved_context)
         user_message = f"Conversation:\n{conversation_text}\n\nContext:\n{context_block}"
-        raw = self._client.complete(_STRATEGY_SYSTEM_PROMPT, user_message, max_tokens=1200)
-        return StrategyOutput(**json.loads(raw))
+        parsed = self._client.complete_json(
+            _STRATEGY_SYSTEM_PROMPT, user_message, max_tokens=1200
+        )
+        return StrategyOutput(**parsed)
 
 
 def get_strategy_provider(settings: Settings | None = None) -> StrategyProvider:

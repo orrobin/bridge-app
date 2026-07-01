@@ -1,4 +1,3 @@
-import json
 from typing import Protocol
 
 from app.core.config import Settings, get_settings
@@ -92,8 +91,8 @@ class ClaudeAnalystProvider:
     ) -> list[Hypothesis]:
         context_block = "\n\n".join(f"[{sid}] {content}" for sid, content in retrieved_context)
         user_message = f"Conversation:\n{conversation_text}\n\nContext:\n{context_block}"
-        raw = self._client.complete(_ANALYST_SYSTEM_PROMPT, user_message, max_tokens=1000)
-        return [Hypothesis(**item) for item in json.loads(raw)]
+        parsed = self._client.complete_json(_ANALYST_SYSTEM_PROMPT, user_message, max_tokens=1000)
+        return [Hypothesis(**item) for item in parsed]
 
 
 def get_analyst_provider(settings: Settings | None = None) -> AnalystProvider:

@@ -106,15 +106,22 @@ by an actual command/test run, not just "looks right."
       AC: red-team fixture set (>=10 adversarial) all correctly flagged; >=10 benign fixtures all pass; false-block rate reported.
       Verified: `tests/test_safety.py`, 11 adversarial fixtures (minor indicators, self-harm,
       coercion/abuse) all block or escalate; 11 benign fixtures all allow (0% false-block rate).
-      Classifier: deterministic rule-based (`RuleBasedSafetyClassifier`), active by default --
-      the Anthropic API key is valid but the console account has no credit balance (billing is
-      separate from any Claude subscription), so a real LLM classifier isn't callable right now.
-      `ClaudeSafetyClassifier` is fully implemented and swaps in automatically via
-      `USE_LLM_SAFETY_CLASSIFIER=true` once credits exist -- see `app/agents/safety.py`.
+      Update once Anthropic credits arrived: ran the same fixture set against the real
+      `ClaudeSafetyClassifier` and it measurably underperformed the rule-based one -- missed
+      2/11 adversarial and 2/9 manipulative fixtures (judges each message in isolation, more
+      lenient on single ambiguous statements without established pattern), 0 false-blocks either
+      way. Also fixed a real bug found in the process: Claude wraps JSON in a markdown code fence
+      despite instructions not to, breaking `json.loads` -- `LLMClient.complete_json()` now
+      strips fences before parsing (was breaking all four `Claude*Provider` classes identically).
+      Given the recall gap, `EnsembleSafetyClassifier` now runs both and takes the more severe
+      decision, so the LLM can only add coverage the rules miss, never soften what rules already
+      catch -- this is what's active by default via `USE_LLM_SAFETY_CLASSIFIER=true` now that
+      credits exist, not Claude alone. See `app/agents/safety.py` and `tests/test_safety_ensemble.py`.
 - [x] T6.2 Post-gate on generated output (blocks manipulation/pushy-past-disinterest language).
       AC: fixture set of manipulative draft replies all blocked/rewritten; a benign reply passes untouched.
       Verified: 9 manipulative fixtures (negging, love-bombing, ignoring a "no", manufactured
-      scarcity, guilt-tripping) all blocked; 5 benign replies all pass untouched.
+      scarcity, guilt-tripping) all blocked; 5 benign replies all pass untouched. Same ensemble
+      approach as T6.1's pre-screen -- see above.
 - [x] T6.3 Every Safety decision written to the audit log.
       AC: every allow/block/escalate decision has a row in `AuditLogEntry` with input hash, decision, reason.
       Verified: `tests/test_safety_agent.py` against real Postgres (audit_log_entries needs no

@@ -110,12 +110,18 @@ retrieval quality is visible without blocking merges. Requires the corpus alread
 ## Agents: Claude API credits
 
 `app/agents/safety.py`, `analyst.py`, `eq.py`, and `strategy.py` each ship a deterministic
-heuristic provider (active by default, no API costs) and a real Claude-based provider
-(`Claude*Provider`, fully implemented but inactive). The Anthropic API key configured here is
-valid but the console account has no credit balance — a Claude subscription (e.g. Claude Code)
-does **not** cover separate Messages API billing. Once credits exist, set
-`USE_LLM_SAFETY_CLASSIFIER=true` and `USE_LLM_AGENTS=true` in `.env` to switch over; nothing else
-needs to change.
+heuristic provider and a real Claude-based provider (`Claude*Provider`). With Anthropic API
+credits and `USE_LLM_AGENTS=true`, Analyst/EQ/Strategy switch to Claude outright (`generation_model`,
+`claude-sonnet-5`) — clearly better reasoning than the heuristics, no safety downside.
+
+Safety is different: measured against the red-team fixture set, `ClaudeSafetyClassifier` alone
+has *worse* recall than the rule-based one (misses ~20% of adversarial fixtures — it judges each
+message in isolation and is more lenient without an established pattern). So
+`USE_LLM_SAFETY_CLASSIFIER=true` doesn't swap the classifier, it adds `ClaudeSafetyClassifier` on
+top of `RuleBasedSafetyClassifier` via `EnsembleSafetyClassifier` (`safety_model`,
+`claude-haiku-4-5` — cheap, since pre/post-screening every message is high-frequency): the final
+decision is the more severe of the two, so the LLM can only add coverage, never soften what the
+rules already catch. See `TASKS.md` T6.1 for the actual before/after fixture numbers.
 
 ## Frontend — local setup
 

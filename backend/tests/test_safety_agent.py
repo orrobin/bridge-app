@@ -51,12 +51,15 @@ def test_blocked_pre_screen_is_logged_as_block_decision():
 
         agent = SafetyAgent()
         decision = agent.pre_screen(db, user.id, "SPEAKER_1: reply to me right now or else")
-        assert decision.decision == "block"
+        # "block" from the rule-based floor, or "escalate" if the LLM (when the
+        # ensemble is active) reads it as more severe -- both are a correct stop,
+        # and which one wins isn't deterministic across LLM calls.
+        assert decision.decision in ("block", "escalate")
 
         entry = (
             db.query(AuditLogEntry).filter(AuditLogEntry.user_id == user.id).one()
         )
-        assert entry.decision == "block"
+        assert entry.decision in ("block", "escalate")
     finally:
         db.query(AuditLogEntry).filter(AuditLogEntry.user_id == user.id).delete(
             synchronize_session=False

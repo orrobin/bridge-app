@@ -71,7 +71,10 @@ def test_orchestrator_stops_early_on_red_flag_and_skips_later_steps():
         assert result.trace == ["safety_pre_screen"]
         assert result.safety_stopped is True
         assert result.safety_decision is not None
-        assert result.safety_decision.decision == "block"
+        # "block" from the rule-based floor or "escalate" if the LLM (when enabled
+        # via the ensemble) reads it as more severe -- both correctly stop the
+        # pipeline, which is the property this test actually cares about.
+        assert result.safety_decision.decision in ("block", "escalate")
         assert result.hypotheses == []
         assert result.strategy is None
     finally:

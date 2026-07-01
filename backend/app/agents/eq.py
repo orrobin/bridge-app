@@ -1,4 +1,3 @@
-import json
 import re
 from typing import Protocol
 
@@ -96,8 +95,8 @@ class ClaudeEQProvider:
         self._client = client
 
     def analyze(self, conversation_text: str) -> list[EmotionalRead]:
-        raw = self._client.complete(_EQ_SYSTEM_PROMPT, conversation_text, max_tokens=800)
-        return [EmotionalRead(**item) for item in json.loads(raw)]
+        parsed = self._client.complete_json(_EQ_SYSTEM_PROMPT, conversation_text, max_tokens=800)
+        return [EmotionalRead(**item) for item in parsed]
 
 
 def get_eq_provider(settings: Settings | None = None) -> EQProvider:

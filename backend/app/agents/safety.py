@@ -1,4 +1,3 @@
-import json
 import re
 from dataclasses import dataclass
 from typing import Protocol
@@ -63,11 +62,14 @@ class RuleBasedSafetyClassifier:
     """Deterministic keyword/pattern classifier.
 
     This is a legitimate first-pass technique for hard safety triggers (self-harm,
-    minors, coercion, manipulation language) on its own -- not merely a fallback --
-    and it's what's active by default here since it needs no network access or
-    API credits. ClaudeSafetyClassifier below is fully implemented and ready to
-    take over once Anthropic API credits are available (see TASKS.md T6.1);
-    swap it in via get_safety_classifier().
+    minors, coercion, manipulation language) on its own -- not merely a fallback.
+    Measured against ClaudeSafetyClassifier on the red-team fixture set
+    (tests/test_safety.py), this has strictly better recall (0 misses vs. Claude's
+    2/11 adversarial and 2/9 manipulative misses) -- Claude judges each message in
+    isolation and is more lenient on single ambiguous statements without a
+    established pattern. So it's always run as the deterministic floor in
+    EnsembleSafetyClassifier below, never fully replaced by the LLM (see TASKS.md
+    T6.1).
     """
 
     def classify_pre_screen(self, conversation_text: str) -> SafetyDecision:
@@ -109,15 +111,16 @@ tripping) or pressure/pursue someone past a clear "no". Decide "allow" or
 
 
 class ClaudeSafetyClassifier:
-    """Real LLM-based classifier (SAD Phase 8.1 GUARD component). Not the default
-    yet -- see RuleBasedSafetyClassifier's docstring."""
+    """Real LLM-based classifier (SAD Phase 8.1 GUARD component). Adds judgment/
+    coverage on top of RuleBasedSafetyClassifier via EnsembleSafetyClassifier
+    below -- not used standalone, since it has measurably worse recall alone
+    (see RuleBasedSafetyClassifier's docstring)."""
 
     def __init__(self, client: LLMClient) -> None:
         self._client = client
 
     def _classify(self, system_prompt: str, text: str) -> SafetyDecision:
-        raw = self._client.complete(system_prompt, text)
-        parsed = json.loads(raw)
+        parsed = self._client.complete_json(system_prompt, text)
         return SafetyDecision(decision=parsed["decision"], reason=parsed["reason"])
 
     def classify_pre_screen(self, conversation_text: str) -> SafetyDecision:
@@ -127,9 +130,43 @@ class ClaudeSafetyClassifier:
         return self._classify(_POST_GATE_SYSTEM_PROMPT, draft_reply)
 
 
+_SEVERITY = {"allow": 0, "block": 1, "escalate": 2}
+
+
+class EnsembleSafetyClassifier:
+    """Combines the rule-based floor with the LLM classifier: the final decision
+    is the more severe of the two, so the LLM can only add coverage the rules
+    miss, never soften a decision the deterministic rules already caught.
+    """
+
+    def __init__(self, rule_based: SafetyClassifier, llm: SafetyClassifier) -> None:
+        self._rule_based = rule_based
+        self._llm = llm
+
+    def _combine(
+        self, rule_decision: SafetyDecision, llm_decision: SafetyDecision
+    ) -> SafetyDecision:
+        if _SEVERITY[llm_decision.decision] > _SEVERITY[rule_decision.decision]:
+            source, chosen = "llm", llm_decision
+        else:
+            source, chosen = "rule-based", rule_decision
+        return SafetyDecision(decision=chosen.decision, reason=f"[{source}] {chosen.reason}")
+
+    def classify_pre_screen(self, conversation_text: str) -> SafetyDecision:
+        rule_decision = self._rule_based.classify_pre_screen(conversation_text)
+        llm_decision = self._llm.classify_pre_screen(conversation_text)
+        return self._combine(rule_decision, llm_decision)
+
+    def classify_post_gate(self, draft_reply: str) -> SafetyDecision:
+        rule_decision = self._rule_based.classify_post_gate(draft_reply)
+        llm_decision = self._llm.classify_post_gate(draft_reply)
+        return self._combine(rule_decision, llm_decision)
+
+
 def get_safety_classifier(settings: Settings | None = None) -> SafetyClassifier:
     settings = settings or get_settings()
+    rule_based = RuleBasedSafetyClassifier()
     if settings.use_llm_safety_classifier and settings.anthropic_api_key:
         client = LLMClient(api_key=settings.anthropic_api_key, model=settings.safety_model)
-        return ClaudeSafetyClassifier(client)
-    return RuleBasedSafetyClassifier()
+        return EnsembleSafetyClassifier(rule_based, ClaudeSafetyClassifier(client))
+    return rule_based

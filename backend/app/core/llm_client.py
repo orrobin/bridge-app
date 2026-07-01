@@ -1,7 +1,14 @@
+import json
+import re
+from typing import Any
+
 import httpx
 
 _ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 _ANTHROPIC_VERSION = "2023-06-01"
+# Claude often wraps JSON output in a markdown code fence despite instructions
+# not to ("Respond with ONLY a JSON object/array") -- strip it before parsing.
+_CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 
 
 class LLMClient:
@@ -30,3 +37,8 @@ class LLMClient:
         response.raise_for_status()
         content = response.json()["content"]
         return "".join(block["text"] for block in content if block.get("type") == "text")
+
+    def complete_json(self, system: str, user: str, max_tokens: int = 500) -> Any:
+        raw = self.complete(system, user, max_tokens=max_tokens)
+        cleaned = _CODE_FENCE_RE.sub("", raw.strip()).strip()
+        return json.loads(cleaned)
