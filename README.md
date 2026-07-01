@@ -88,17 +88,34 @@ Everything except the `knowledge_chunks` table/embeddings (Epic 4+) works withou
 `app/rag/embeddings.py` picks a provider at runtime: if `OPENAI_API_KEY` is set, it uses OpenAI's
 hosted embeddings; otherwise it falls back to a deterministic, dependency-free hashing-trick
 bag-of-words embedder (no network/API key needed, but not a real semantic model — fine for
-development, not for production quality). Ingest the seed corpus with:
+development, not for production quality).
 
-```bash
-python -m scripts.ingest_corpus
-```
-
-Once the DB is reachable, apply migrations:
+Once the DB is reachable (`docker compose up -d` or a native Postgres, above), apply migrations
+and ingest the seed corpus:
 
 ```bash
 alembic upgrade head
+python -m scripts.ingest_corpus
 ```
+
+## Eval
+
+`python -m scripts.run_eval` prints an offline eval report: retrieval Recall@1/3/5 against a
+hand-labeled golden set (`app/rag/golden_set.py`) and a citation-accuracy spot check (does every
+citation the Analyst/Strategy agents emit reference a real, licensed corpus source). It's a
+report, not a pass/fail gate — it runs as a non-blocking CI step (`continue-on-error`) so a dip in
+retrieval quality is visible without blocking merges. Requires the corpus already ingested
+(above) against a pgvector-enabled Postgres.
+
+## Agents: Claude API credits
+
+`app/agents/safety.py`, `analyst.py`, `eq.py`, and `strategy.py` each ship a deterministic
+heuristic provider (active by default, no API costs) and a real Claude-based provider
+(`Claude*Provider`, fully implemented but inactive). The Anthropic API key configured here is
+valid but the console account has no credit balance — a Claude subscription (e.g. Claude Code)
+does **not** cover separate Messages API billing. Once credits exist, set
+`USE_LLM_SAFETY_CLASSIFIER=true` and `USE_LLM_AGENTS=true` in `.env` to switch over; nothing else
+needs to change.
 
 ## Frontend — local setup
 

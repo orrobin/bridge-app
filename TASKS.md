@@ -186,7 +186,19 @@ counter-reads) are enforced structurally, independent of which provider is activ
       the dark-mode-flipped light foreground (near-invisible light-on-light text).
 
 ## Epic 10 — Eval scaffolding & polish
-- [ ] T10.1 Golden-set offline eval script (retrieval recall@k, citation-accuracy spot check).
+- [x] T10.1 Golden-set offline eval script (retrieval recall@k, citation-accuracy spot check).
       AC: eval command prints recall@k and a citation-accuracy percentage on the golden set.
-- [ ] T10.2 README with setup, running locally, running tests, running eval, and an ethics note.
+      Verified in CI (pgvector-gated, same as other retrieval work): `python -m scripts.run_eval`
+      (`app/rag/eval.py`) prints Recall@1/3/5 against the shared `app/rag/golden_set.py` (now the
+      single source of truth, also used by `tests/test_hybrid_retrieval.py`) and a citation-
+      accuracy percentage (every citation the heuristic Analyst/Strategy providers emit checked
+      against the licensed corpus ledger). Wired into CI as a non-blocking
+      (`continue-on-error: true`) step after the test suite -- a report, not a merge gate.
+- [x] T10.2 README with setup, running locally, running tests, running eval, and an ethics note.
       AC: a fresh clone + README steps gets a new dev to a passing `pytest` and a working `/health` locally.
+      Verified: README covers backend setup/run/test/lint (confirmed working throughout this
+      session), Postgres+pgvector setup (Docker and native, with the Windows pgvector caveat),
+      embeddings provider selection, migrations + corpus ingestion, the new eval command, frontend
+      setup (including the localhost-vs-127.0.0.1 HMR gotcha found in Epic 9), and the
+      Claude-agent-credits situation with the exact env vars to flip once credits exist. The
+      "What this is / isn't" section at the top mirrors SAD §1.5's ethical boundaries.

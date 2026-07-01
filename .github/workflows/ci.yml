@@ -45,6 +45,10 @@ jobs:
       - name: Test (pytest)
         run: pytest -q
 
+      - name: Eval report (retrieval recall@k, citation accuracy)
+        run: python -m scripts.run_eval
+        continue-on-error: true
+
   frontend:
     runs-on: ubuntu-latest
     defaults:
