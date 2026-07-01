@@ -102,12 +102,24 @@ by an actual command/test run, not just "looks right."
       confirmed to shrink token count while preserving the query-relevant sentence.
 
 ## Epic 6 — Safety & Ethics agent (pre + post gate)
-- [ ] T6.1 Pre-screen classifier/rules on upload (minors, abuse, coercion, self-harm).
+- [x] T6.1 Pre-screen classifier/rules on upload (minors, abuse, coercion, self-harm).
       AC: red-team fixture set (>=10 adversarial) all correctly flagged; >=10 benign fixtures all pass; false-block rate reported.
-- [ ] T6.2 Post-gate on generated output (blocks manipulation/pushy-past-disinterest language).
+      Verified: `tests/test_safety.py`, 11 adversarial fixtures (minor indicators, self-harm,
+      coercion/abuse) all block or escalate; 11 benign fixtures all allow (0% false-block rate).
+      Classifier: deterministic rule-based (`RuleBasedSafetyClassifier`), active by default --
+      the Anthropic API key is valid but the console account has no credit balance (billing is
+      separate from any Claude subscription), so a real LLM classifier isn't callable right now.
+      `ClaudeSafetyClassifier` is fully implemented and swaps in automatically via
+      `USE_LLM_SAFETY_CLASSIFIER=true` once credits exist -- see `app/agents/safety.py`.
+- [x] T6.2 Post-gate on generated output (blocks manipulation/pushy-past-disinterest language).
       AC: fixture set of manipulative draft replies all blocked/rewritten; a benign reply passes untouched.
-- [ ] T6.3 Every Safety decision written to the audit log.
+      Verified: 9 manipulative fixtures (negging, love-bombing, ignoring a "no", manufactured
+      scarcity, guilt-tripping) all blocked; 5 benign replies all pass untouched.
+- [x] T6.3 Every Safety decision written to the audit log.
       AC: every allow/block/escalate decision has a row in `AuditLogEntry` with input hash, decision, reason.
+      Verified: `tests/test_safety_agent.py` against real Postgres (audit_log_entries needs no
+      pgvector, so this runs locally too) -- every `SafetyAgent.pre_screen`/`post_gate` call writes
+      a row with actor/action/decision/reason/input_hash.
 
 ## Epic 7 — Analyst / EQ / Strategy agents + Orchestrator (single-pass)
 - [ ] T7.1 Orchestrator: deterministic call sequence (Safety pre -> Analyst+EQ+Profile parallel -> Strategy -> Meeting-lite -> Safety post).
