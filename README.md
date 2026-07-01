@@ -24,7 +24,7 @@ See SAD §0 and §1.5 for the full ethical rationale.
 
 ```
 backend/    FastAPI app (API, agents, RAG pipeline, DB models)
-frontend/   Next.js app (added in Epic 9)
+frontend/   Next.js app
 corpus/     Seed knowledge sources + licensing ledger (sources.md)
 docs/       Architecture document
 ```
@@ -99,6 +99,31 @@ Once the DB is reachable, apply migrations:
 ```bash
 alembic upgrade head
 ```
+
+## Frontend — local setup
+
+Requires Node.js (tested on 24.x).
+
+```bash
+cd frontend
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
+
+Open **http://localhost:3000** — not `127.0.0.1:3000`. Next.js 16's dev server blocks the
+HMR/webpack websocket for origins other than `localhost` by default (`allowedDevOrigins`), and
+without it connecting, event handling silently breaks (forms fall back to native, unintercepted
+submission). The backend must be running (`uvicorn app.main:app`) with CORS allowing
+`http://localhost:3000` (already the default in `app/core/config.py`).
+
+Covers: signup/login, the 18+/jurisdiction/other-party consent screen, pasting a chat, and a
+results view with confidence-banded hypotheses, emotional reads (each with a counter-read), and
+cited reply options. Manually verified end-to-end in a real browser against the local backend,
+including the safety-stop path (red-flag input never reaches analysis). The full "grounded
+results with citations" path additionally needs the corpus ingested into a pgvector-enabled
+Postgres (see above) — blocked on this dev machine same as the backend retrieval tests, verified
+in CI instead.
 
 ## Status
 

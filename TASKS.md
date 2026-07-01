@@ -168,8 +168,22 @@ counter-reads) are enforced structurally, independent of which provider is activ
       (403 vs. proceeding to a 404) now that `/analyze` requires a real upload first.
 
 ## Epic 9 — Minimal frontend
-- [ ] T9.1 Next.js app: login/signup, consent screen, paste-or-upload chat, results view with citations/confidence bands.
+- [x] T9.1 Next.js app: login/signup, consent screen, paste-or-upload chat, results view with citations/confidence bands.
       AC: manually driven through the browser end-to-end against the local backend; no raw PII visible if redaction worked.
+      Verified: manually driven in a real Chrome browser end-to-end against the local backend --
+      signup -> consent (real notice text fetched from `/consent/notice`) -> paste a red-flag
+      conversation -> upload -> analyze -> safety-stop view rendered correctly with no console
+      errors. (The full "grounded results with citations" path needs the corpus in a
+      pgvector-enabled Postgres, same constraint as the backend retrieval tests -- not run here,
+      but the component/schema wiring for it, including confidence badges and counter-
+      evidence/counter-read display, is in place and type-checked.)
+      Found and fixed one real bug during this: Next.js 16's dev server blocks the dev
+      HMR/webpack websocket for any origin other than `localhost` (`allowedDevOrigins`); browsing
+      via `127.0.0.1:3000` left the socket disconnected and broke form submission (silently fell
+      back to native, unintercepted browser submits). Documented in README -- use `localhost`,
+      not `127.0.0.1`, for local frontend dev. Also fixed a real dark-mode contrast bug: the
+      inactive auth-mode tab button used `bg-gray-100` without an explicit text color, inheriting
+      the dark-mode-flipped light foreground (near-invisible light-on-light text).
 
 ## Epic 10 — Eval scaffolding & polish
 - [ ] T10.1 Golden-set offline eval script (retrieval recall@k, citation-accuracy spot check).
