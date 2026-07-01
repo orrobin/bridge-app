@@ -60,10 +60,26 @@ by an actual command/test run, not just "looks right."
       expired row is deleted while a non-expired row survives.
 
 ## Epic 4 — Knowledge corpus & ingestion (small, MVP-sized)
-- [ ] T4.1 Seed corpus (5-15 items) of open-access/CC/first-party-written short explainers, license-tagged.
+- [x] T4.1 Seed corpus (5-15 items) of open-access/CC/first-party-written short explainers, license-tagged.
       AC: `corpus/sources.md` ledger lists each item + license + attribution; ingestion refuses to load anything missing a license tag.
-- [ ] T4.2 Chunking + metadata + embedding + load into pgvector.
+      Verified: 8 original first-party explainers in `corpus/content/` (bids for connection,
+      attachment styles, active listening, NVC basics, reading disinterest, positivity ratio,
+      boundaries/consent, repair after miscommunication) -- no copyrighted book/course text, only
+      original writing informed by publicly described concepts, per SAD Phase 3.1. All 8 listed in
+      `corpus/sources.md`; `test_all_seed_content_files_are_listed_in_the_ledger` and
+      `ingest_corpus()`'s `CorpusError` on an unlisted id both verified in `tests/test_corpus.py`.
+      Embeddings: no embedding API key/network path was available for a genuinely free option
+      (Hugging Face + Voyage AI both blocked on this network, OpenAI is reachable but not free) --
+      shipped a deterministic, dependency-free hashing-trick bag-of-words embedder
+      (`app/rag/embeddings.py::HashingBagOfWordsEmbedder`) behind an `EmbeddingProvider` interface,
+      with a real `OpenAIEmbedder` already implemented and auto-selected once `OPENAI_API_KEY` is set.
+- [x] T4.2 Chunking + metadata + embedding + load into pgvector.
       AC: ingestion script populates `KnowledgeChunk` rows with embeddings; a smoke query retrieves the relevant chunk in the top 3.
+      Verified in CI (pgvector blocked locally, same as T1.3): `scripts/ingest_corpus.py` /
+      `app/rag/ingest.py::ingest_corpus` is idempotent (replaces a source's chunks on re-run);
+      `tests/test_ingest.py::test_ingest_corpus_then_smoke_query_finds_relevant_chunk` ingests all 8
+      docs and confirms a disinterest-themed query's top-3 nearest chunks include
+      `reading-disinterest-signals` (skips locally, runs for real in CI's pgvector Postgres).
 
 ## Epic 5 — Retrieval pipeline (MVP-scoped hybrid)
 - [ ] T5.1 Vector search (pgvector) + Postgres full-text + Reciprocal Rank Fusion.

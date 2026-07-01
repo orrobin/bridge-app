@@ -83,6 +83,17 @@ MSVC C++ build tools (Visual Studio "Desktop development with C++" workload) to 
 then follow the [pgvector Windows build instructions](https://github.com/pgvector/pgvector#windows).
 Everything except the `knowledge_chunks` table/embeddings (Epic 4+) works without it.
 
+## Embeddings
+
+`app/rag/embeddings.py` picks a provider at runtime: if `OPENAI_API_KEY` is set, it uses OpenAI's
+hosted embeddings; otherwise it falls back to a deterministic, dependency-free hashing-trick
+bag-of-words embedder (no network/API key needed, but not a real semantic model — fine for
+development, not for production quality). Ingest the seed corpus with:
+
+```bash
+python -m scripts.ingest_corpus
+```
+
 Once the DB is reachable, apply migrations:
 
 ```bash
