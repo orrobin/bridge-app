@@ -43,12 +43,21 @@ by an actual command/test run, not just "looks right."
       acknowledgement -> 400.
 
 ## Epic 3 — Upload & redaction
-- [ ] T3.1 Chat upload endpoint (pasted text / WhatsApp export first).
+- [x] T3.1 Chat upload endpoint (pasted text / WhatsApp export first).
       AC: parser splits into turns with speaker labels; malformed input returns 422 with a helpful message, not a 500.
-- [ ] T3.2 Redaction pass (names/phone/email/handles) before persistence or LLM calls.
+      Verified: `tests/test_chat_parser.py` (6 tests: generic + WhatsApp formats, multi-line messages,
+      empty/unparseable/single-speaker error cases) and `tests/test_upload.py` 422 cases via `POST /upload`.
+- [x] T3.2 Redaction pass (names/phone/email/handles) before persistence or LLM calls.
       AC: unit tests show PII patterns replaced with placeholders; redacted text, not raw text, is what gets stored/logged.
-- [ ] T3.3 TTL on raw/target-party data.
+      Verified: `tests/test_redaction.py` (5 tests) plus `test_upload_parses_and_redacts_chat` confirms
+      the DB-persisted response only ever contains redacted turns (`SPEAKER_n` + `[EMAIL]`/`[PHONE]`/
+      `[HANDLE]`/`[URL]` placeholders) -- raw text is never stored.
+- [x] T3.3 TTL on raw/target-party data.
       AC: uploaded raw target-party rows carry `expires_at`; a cleanup job deletes expired rows; test proves expired rows are purged.
+      Verified: `UploadedChatData.expires_at` set on every upload (30-day TTL, `app/core/retention.py`);
+      `scripts/purge_expired_uploads.py` (run via cron/scheduled task, documented in README) calls
+      `purge_expired_uploads()`, confirmed against real Postgres; `tests/test_retention.py` proves an
+      expired row is deleted while a non-expired row survives.
 
 ## Epic 4 — Knowledge corpus & ingestion (small, MVP-sized)
 - [ ] T4.1 Seed corpus (5-15 items) of open-access/CC/first-party-written short explainers, license-tagged.

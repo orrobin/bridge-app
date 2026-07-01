@@ -3,6 +3,7 @@ from app.models.consent import ConsentRecord
 from app.models.knowledge import KnowledgeChunk
 from app.models.profile import UserProfile
 from app.models.thread import ConversationThread
+from app.models.upload import UploadedChatData
 from app.models.user import User
 
 __all__ = [
@@ -10,6 +11,7 @@ __all__ = [
     "ConsentRecord",
     "ConversationThread",
     "KnowledgeChunk",
+    "UploadedChatData",
     "User",
     "UserProfile",
 ]

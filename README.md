@@ -55,6 +55,12 @@ pytest -q
 ruff check .
 ```
 
+Purge expired uploaded target-party data (run on a schedule, e.g. daily cron):
+
+```bash
+python -m scripts.purge_expired_uploads
+```
+
 ## Local infrastructure (Postgres + pgvector, Redis)
 
 ```bash

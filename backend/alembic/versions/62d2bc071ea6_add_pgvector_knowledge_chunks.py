@@ -19,7 +19,7 @@ import pgvector.sqlalchemy
 
 # revision identifiers, used by Alembic.
 revision: str = '62d2bc071ea6'
-down_revision: Union[str, Sequence[str], None] = '69c03e05fd67'
+down_revision: Union[str, Sequence[str], None] = '67e6e9061f41'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
