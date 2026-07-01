@@ -31,6 +31,6 @@ services:
       - key: EMBEDDING_MODEL
         value: text-embedding-3-small
       - key: USE_LLM_SAFETY_CLASSIFIER
-        value: "false"
+        value: "true"
       - key: USE_LLM_AGENTS
-        value: "false"
+        value: "true"
