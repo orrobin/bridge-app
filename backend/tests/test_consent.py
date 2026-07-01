@@ -1,3 +1,5 @@
+import uuid
+
 from tests.conftest import unique_email
 
 PASSWORD = "correct-horse-battery-staple"
@@ -14,21 +16,27 @@ def _auth_headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _dummy_analyze_body() -> dict[str, str]:
+    return {"thread_id": str(uuid.uuid4())}
+
+
 def test_analyze_without_auth_returns_401(api_client):
-    response = api_client.post("/analyze")
+    response = api_client.post("/analyze", json=_dummy_analyze_body())
     assert response.status_code == 401
 
 
 def test_analyze_without_consent_returns_403_naming_required_step(api_client):
     token = _signup_and_login(api_client)
 
-    response = api_client.post("/analyze", headers=_auth_headers(token))
+    response = api_client.post(
+        "/analyze", json=_dummy_analyze_body(), headers=_auth_headers(token)
+    )
     assert response.status_code == 403
     assert "consent" in response.json()["detail"].lower()
     assert "/consent" in response.json()["detail"]
 
 
-def test_analyze_with_valid_consent_is_accepted(api_client):
+def test_analyze_with_valid_consent_passes_the_consent_gate(api_client):
     token = _signup_and_login(api_client)
     headers = _auth_headers(token)
 
@@ -43,8 +51,12 @@ def test_analyze_with_valid_consent_is_accepted(api_client):
     )
     assert consent_response.status_code == 201
 
-    analyze_response = api_client.post("/analyze", headers=headers)
-    assert analyze_response.status_code == 200
+    # Consent passes, so it proceeds to look for the thread rather than blocking
+    # with a 403 -- full end-to-end analysis is covered in tests/test_analyze.py.
+    analyze_response = api_client.post(
+        "/analyze", json=_dummy_analyze_body(), headers=headers
+    )
+    assert analyze_response.status_code == 404
 
 
 def test_consent_rejects_missing_acknowledgements(api_client):

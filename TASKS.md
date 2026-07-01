@@ -155,8 +155,17 @@ credits exist. The hard safety rules (never push past a detected "no", schema-re
 counter-reads) are enforced structurally, independent of which provider is active.
 
 ## Epic 8 — API surface tying it together
-- [ ] T8.1 `POST /analyze`: upload -> consent-check -> redact -> orchestrate -> grounded, cited response.
+- [x] T8.1 `POST /analyze`: upload -> consent-check -> redact -> orchestrate -> grounded, cited response.
       AC: full happy-path integration test (signup -> consent -> analyze) returns a response with citations and no raw PII; red-flag fixture returns the safety-stop response instead of an analysis.
+      Verified: `tests/test_analyze.py`. `POST /analyze` takes a `thread_id` from a prior
+      `POST /upload`, reconstructs the redacted conversation, and runs it through the Orchestrator.
+      Red-flag fixture (runs locally, no pgvector needed since it stops before retrieval): returns
+      200 with `safety_stopped: true`, a safety-resources message, and no hypotheses/strategy.
+      Happy-path fixture (pgvector-gated, verified in CI): returns cited hypotheses, emotional
+      reads (each with a counter_read), and strategy options, with the raw speaker name confirmed
+      absent from the entire response body. Unknown thread_id -> 404. Adjusted the Epic 2 consent-
+      gating tests (`test_consent.py`) to send a dummy thread_id and assert on the gate itself
+      (403 vs. proceeding to a 404) now that `/analyze` requires a real upload first.
 
 ## Epic 9 — Minimal frontend
 - [ ] T9.1 Next.js app: login/signup, consent screen, paste-or-upload chat, results view with citations/confidence bands.
