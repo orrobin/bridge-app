@@ -30,12 +30,19 @@ by an actual command/test run, not just "looks right."
       install the "Desktop development with C++" workload (or run
       `vs_buildtools.exe --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools`), build pgvector against
       this Postgres 17 install, then `alembic upgrade head`.
+      CI now runs against `pgvector/pgvector:pg16` (Linux, has the extension), so `tests/test_knowledge_vector.py`
+      (skipped locally) should actually verify this AC on every push even though local Windows dev can't.
 
 ## Epic 2 — Auth, accounts & consent
-- [ ] T2.1 User signup/login (email+password, hashed, JWT session).
+- [x] T2.1 User signup/login (email+password, hashed, JWT session).
       AC: `/auth/signup` and `/auth/login` work end-to-end in a test; passwords never stored plaintext; invalid login returns 401.
-- [ ] T2.2 18+ + jurisdiction + consent capture (other-party non-consent notice).
+      Verified: 5 tests in `tests/test_auth.py` passing against real Postgres (signup/login round-trip,
+      hashed-not-plaintext check, wrong-password 401, unknown-email 401, duplicate-signup 400).
+- [x] T2.2 18+ + jurisdiction + consent capture (other-party non-consent notice).
       AC: consent must be recorded (jurisdiction + timestamp + notice copy) before any `/analyze` call is accepted; missing consent -> 403 naming the required step.
+      Verified: 4 tests in `tests/test_consent.py` — no auth -> 401, no consent -> 403 naming `/consent`,
+      valid consent -> 200 on a placeholder `/analyze` (full pipeline lands in Epic 8), incomplete
+      acknowledgement -> 400.
 
 ## Epic 3 — Upload & redaction
 - [ ] T3.1 Chat upload endpoint (pasted text / WhatsApp export first).
