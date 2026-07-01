@@ -82,12 +82,23 @@ by an actual command/test run, not just "looks right."
       `reading-disinterest-signals` (skips locally, runs for real in CI's pgvector Postgres).
 
 ## Epic 5 — Retrieval pipeline (MVP-scoped hybrid)
-- [ ] T5.1 Vector search (pgvector) + Postgres full-text + Reciprocal Rank Fusion.
+- [x] T5.1 Vector search (pgvector) + Postgres full-text + Reciprocal Rank Fusion.
       AC: hybrid results outrank pure-vector-only results on a small hand-labeled golden set (>=3 queries).
-- [ ] T5.2 Basic query rewrite (expand a vague question using the conversation window).
+      Verified in CI (pgvector blocked locally, same as T1.3): `tests/test_hybrid_retrieval.py`,
+      5-query golden set of natural-language questions (deliberately not sharing exact vocabulary
+      with their target doc, since that's where the crude hash embedder needs lexical's help);
+      asserts hybrid's mean reciprocal rank beats vector-only's and no query regresses. Lexical
+      search uses OR-joined tsquery terms (not plainto_tsquery's implicit AND), since natural
+      questions rarely share every content word with a relevant chunk.
+- [x] T5.2 Basic query rewrite (expand a vague question using the conversation window).
       AC: fixture-based test shows the rewritten query includes key terms absent from the raw question.
-- [ ] T5.3 Context compression (trim to relevant sentences) before generation.
+      Verified: `tests/test_query_rewrite.py` (3 tests). Deterministic heuristic (salient terms from
+      recent turns, no LLM call) -- kept dependency-free since it's a mechanical text expansion, not
+      reasoning; LLM usage is reserved for Epics 6-7 where real reasoning is required.
+- [x] T5.3 Context compression (trim to relevant sentences) before generation.
       AC: token count of assembled context is reduced vs. raw top-k concat, without dropping the golden-answer sentence.
+      Verified: `tests/test_compression.py` -- extractive, term-overlap-scored sentence selection
+      confirmed to shrink token count while preserving the query-relevant sentence.
 
 ## Epic 6 — Safety & Ethics agent (pre + post gate)
 - [ ] T6.1 Pre-screen classifier/rules on upload (minors, abuse, coercion, self-harm).
