@@ -21,17 +21,15 @@ by an actual command/test run, not just "looks right."
 - [x] T1.2 Alembic wired to a real Postgres.
       AC: `alembic upgrade head` succeeds against a fresh DB; downgrade also works.
       Verified: `alembic upgrade head` / `downgrade base` / `upgrade head` again all succeeded against local Postgres 17 (`bridge` db); `\dt` confirms all 5 tables.
-- [ ] T1.3 pgvector table for corpus embeddings (`KnowledgeChunk`).
+- [x] T1.3 pgvector table for corpus embeddings (`KnowledgeChunk`).
       AC: table has a `vector` column of a fixed dimension; a raw insert+cosine-similarity query returns the nearest row in a test.
-      BLOCKED (env): pgvector has no Windows prebuilt package; building from source needs MSVC C++ build tools,
-      which require elevation this session doesn't have (two install attempts exited immediately, no UAC access).
-      Model + migration (`62d2bc071ea6_add_pgvector_knowledge_chunks.py`) are written and confirmed to fail
-      cleanly/rollback on `CREATE EXTENSION vector` (no partial state). To finish: from an elevated terminal,
-      install the "Desktop development with C++" workload (or run
-      `vs_buildtools.exe --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools`), build pgvector against
-      this Postgres 17 install, then `alembic upgrade head`.
-      CI now runs against `pgvector/pgvector:pg16` (Linux, has the extension), so `tests/test_knowledge_vector.py`
-      (skipped locally) should actually verify this AC on every push even though local Windows dev can't.
+      Verified in CI (not locally): local Windows dev can't compile pgvector (no MSVC build tools with
+      elevation available), but CI runs `pgvector/pgvector:pg16`, applies both migrations, and
+      `tests/test_knowledge_vector.py::test_cosine_similarity_returns_nearest_row` passed there
+      (run 28515000860: "11 passed, 1 warning", 0 skipped) -- confirming insert + cosine-distance
+      ordering returns the nearest row. The test self-skips locally when the extension is absent.
+      To also verify locally: from an elevated terminal, install the "Desktop development with C++"
+      workload, build pgvector against this Postgres 17 install, then `alembic upgrade head`.
 
 ## Epic 2 — Auth, accounts & consent
 - [x] T2.1 User signup/login (email+password, hashed, JWT session).
