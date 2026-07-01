@@ -64,6 +64,25 @@ docker compose up -d
 This starts Postgres 16 with the `vector` extension enabled (via `docker/postgres-init/`) on
 `localhost:5432` (db/user/password: `bridge`), and Redis on `localhost:6379`.
 
+**No Docker?** A native Postgres 17 works too (e.g. `winget install PostgreSQL.PostgreSQL.17`),
+then create the role/db manually:
+
+```sql
+CREATE ROLE bridge LOGIN PASSWORD 'bridge';
+CREATE DATABASE bridge OWNER bridge;
+```
+
+`pgvector` has no Windows prebuilt package — it must be compiled from source, which requires the
+MSVC C++ build tools (Visual Studio "Desktop development with C++" workload) to be installed first,
+then follow the [pgvector Windows build instructions](https://github.com/pgvector/pgvector#windows).
+Everything except the `knowledge_chunks` table/embeddings (Epic 4+) works without it.
+
+Once the DB is reachable, apply migrations:
+
+```bash
+alembic upgrade head
+```
+
 ## Status
 
 Under active, incremental development — see [`TASKS.md`](TASKS.md) for what's built vs. planned.

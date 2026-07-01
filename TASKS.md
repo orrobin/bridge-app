@@ -15,12 +15,21 @@ by an actual command/test run, not just "looks right."
       AC: workflow file present, passes on first push (green check on GitHub).
 
 ## Epic 1 — Data layer & migrations
-- [ ] T1.1 SQLAlchemy models: `User`, `ConsentRecord`, `ConversationThread`, `UserProfile`, `AuditLogEntry`.
+- [x] T1.1 SQLAlchemy models: `User`, `ConsentRecord`, `ConversationThread`, `UserProfile`, `AuditLogEntry`.
       AC: models import cleanly; Alembic autogenerate produces a migration with these tables.
-- [ ] T1.2 Alembic wired to the Compose Postgres.
+      Verified: local PostgreSQL 17 (installed via winget), `alembic revision --autogenerate` produced the migration.
+- [x] T1.2 Alembic wired to a real Postgres.
       AC: `alembic upgrade head` succeeds against a fresh DB; downgrade also works.
+      Verified: `alembic upgrade head` / `downgrade base` / `upgrade head` again all succeeded against local Postgres 17 (`bridge` db); `\dt` confirms all 5 tables.
 - [ ] T1.3 pgvector table for corpus embeddings (`KnowledgeChunk`).
       AC: table has a `vector` column of a fixed dimension; a raw insert+cosine-similarity query returns the nearest row in a test.
+      BLOCKED (env): pgvector has no Windows prebuilt package; building from source needs MSVC C++ build tools,
+      which require elevation this session doesn't have (two install attempts exited immediately, no UAC access).
+      Model + migration (`62d2bc071ea6_add_pgvector_knowledge_chunks.py`) are written and confirmed to fail
+      cleanly/rollback on `CREATE EXTENSION vector` (no partial state). To finish: from an elevated terminal,
+      install the "Desktop development with C++" workload (or run
+      `vs_buildtools.exe --quiet --wait --add Microsoft.VisualStudio.Workload.VCTools`), build pgvector against
+      this Postgres 17 install, then `alembic upgrade head`.
 
 ## Epic 2 — Auth, accounts & consent
 - [ ] T2.1 User signup/login (email+password, hashed, JWT session).
